@@ -1,0 +1,43 @@
+name: gsoft-demo
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  JF_URL: https://jfrogkmm.jfrog.io
+  JF_PROJECT: gsoft
+
+jobs:
+  oidc-check:
+    name: OIDC authentication and DEV read access
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up JFrog CLI with OIDC
+        uses: jfrog/setup-jfrog-cli@v4
+        with:
+          oidc-provider-name: globalsoft-github
+          oidc-audience: globalsoft-github-actions
+          disable-auto-build-publish: true
+
+      - name: Check Artifactory connection
+        run: jf rt ping
+
+      - name: Check DEV repository read access
+        shell: bash
+        run: |
+          jf rt curl -f -sS "/api/storage/gsoft-npm-dev-local" \
+            | jq -e '.repo == "gsoft-npm-dev-local"'
+          echo "DEV repository read check passed."
