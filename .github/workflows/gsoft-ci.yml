@@ -61,6 +61,12 @@ jobs:
             --server-id-deploy=setup-jfrog-cli-server \
             --repo-deploy=gsoft-npm-dev-local
 
+      - name: Prepare CI package
+        run: |
+          npm pkg set publishConfig.registry="https://jfrogkmm.jfrog.io/artifactory/api/npm/gsoft-npm-dev-local/"
+          npm pkg delete private
+          npm version "1.0.0-ci.${GITHUB_RUN_NUMBER}.${GITHUB_RUN_ATTEMPT}" --no-git-tag-version --ignore-scripts
+
       - name: Initialize npm cache
         run: mkdir -p "$(npm config get cache)/_cacache"
 
@@ -80,10 +86,19 @@ jobs:
       - name: Build application
         run: npm run build
 
-      - name: Package application
-        shell: bash
+      - name: Package and publish to DEV
         run: |
-          mkdir -p "$RUNNER_TEMP/gsoft-package"
-          npm pack --ignore-scripts \
-            --pack-destination "$RUNNER_TEMP/gsoft-package"
-          test -s "$RUNNER_TEMP/gsoft-package/gsoft-demo-1.0.0.tgz"
+          jf npm publish \
+            --ignore-scripts \
+            --build-name="$JFROG_CLI_BUILD_NAME" \
+            --build-number="$JFROG_CLI_BUILD_NUMBER" \
+            --project="$JF_PROJECT" \
+            --module=gsoft-demo
+
+      - name: Publish build information
+        run: |
+          jf rt build-publish \
+            "$JFROG_CLI_BUILD_NAME" "$JFROG_CLI_BUILD_NUMBER" \
+            --project="$JF_PROJECT" \
+            --collect-git-info \
+            --build-url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
