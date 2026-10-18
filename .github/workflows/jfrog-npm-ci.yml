@@ -1,0 +1,169 @@
+name: Reusable JFrog npm CI
+
+on:
+  workflow_call:
+    inputs:
+      project-key:
+        required: true
+        type: string
+      npm-resolve-repo:
+        required: true
+        type: string
+      npm-dev-repo:
+        required: true
+        type: string
+      npm-staging-repo:
+        required: true
+        type: string
+      build-name:
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  JF_URL: https://jfrogkmm.jfrog.io
+  JF_PROJECT: ${{ inputs.project-key }}
+  NPM_RESOLVE_REPO: ${{ inputs.npm-resolve-repo }}
+  NPM_DEV_REPO: ${{ inputs.npm-dev-repo }}
+  NPM_STAGING_REPO: ${{ inputs.npm-staging-repo }}
+  JFROG_CLI_BUILD_NAME: ${{ inputs.build-name }}
+  JFROG_CLI_BUILD_NUMBER: "${{ github.run_id }}.${{ github.run_attempt }}"
+
+jobs:
+  ci:
+    name: Build and package
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+
+      - name: Show runtime versions
+        run: |
+          node --version
+          npm --version
+
+      - name: Set up JFrog CLI with OIDC
+        uses: jfrog/setup-jfrog-cli@v4
+        with:
+          oidc-provider-name: globalsoft-github
+          oidc-audience: globalsoft-github-actions
+          disable-auto-build-publish: true
+
+      - name: Check Artifactory connection
+        run: jf rt ping
+
+      - name: Check DEV repository read access
+        shell: bash
+        run: |
+          jf rt curl -f -sS "/api/storage/${NPM_DEV_REPO}" \
+            | jq -e --arg repo "$NPM_DEV_REPO" '.repo == $repo'
+
+      - name: Configure npm repositories
+        run: |
+          jf npm-config \
+            --server-id-resolve=setup-jfrog-cli-server \
+            --repo-resolve="$NPM_RESOLVE_REPO" \
+            --server-id-deploy=setup-jfrog-cli-server \
+            --repo-deploy="$NPM_DEV_REPO"
+
+      - name: Prepare CI package
+        run: |
+          echo "NPM_PACKAGE_NAME=$(node -p 'require("./package.json").name')" >> "$GITHUB_ENV"
+          npm pkg set publishConfig.registry="${JF_URL}/artifactory/api/npm/${NPM_DEV_REPO}/"
+          npm pkg delete private
+          base_version="$(node -p 'require("./package.json").version.split("-")[0]')"
+          npm version "${base_version}-ci.${GITHUB_RUN_ID}.${GITHUB_RUN_ATTEMPT}" --no-git-tag-version --ignore-scripts
+
+      - name: Initialize npm cache
+        run: mkdir -p "$(npm config get cache)/_cacache"
+
+      - name: Install dependencies and collect build information
+        run: |
+          jf npm ci \
+            --ignore-scripts \
+            --no-audit \
+            --no-fund \
+            --build-name="$JFROG_CLI_BUILD_NAME" \
+            --build-number="$JFROG_CLI_BUILD_NUMBER" \
+            --module="$NPM_PACKAGE_NAME"
+
+      - name: Run tests
+        run: npm test
+
+      - name: Build application
+        run: npm run build
+
+      - name: Package and publish to DEV
+        run: |
+          jf npm publish \
+            --ignore-scripts \
+            --build-name="$JFROG_CLI_BUILD_NAME" \
+            --build-number="$JFROG_CLI_BUILD_NUMBER" \
+            --project="$JF_PROJECT" \
+            --module="$NPM_PACKAGE_NAME"
+
+      - name: Publish build information
+        run: |
+          jf rt build-publish \
+            "$JFROG_CLI_BUILD_NAME" "$JFROG_CLI_BUILD_NUMBER" \
+            --project="$JF_PROJECT" \
+            --collect-git-info \
+            --build-url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+
+      - name: Xray policy gate
+        timeout-minutes: 8
+        run: |
+          jf build-scan \
+            "$JFROG_CLI_BUILD_NAME" "$JFROG_CLI_BUILD_NUMBER" \
+            --project="$JF_PROJECT" \
+            --fail=true \
+            --extended-table=true
+
+      - name: Promote approved build to STAGING
+        run: |
+          jf rt build-promote \
+            "$JFROG_CLI_BUILD_NAME" "$JFROG_CLI_BUILD_NUMBER" \
+            "$NPM_STAGING_REPO" \
+            --project="$JF_PROJECT" \
+            --source-repo="$NPM_DEV_REPO" \
+            --copy=true \
+            --include-dependencies=false \
+            --status=STAGING \
+            --comment="Tests and Xray policy gate passed"
+
+      - name: Verify promoted package checksum
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="$(node -p "JSON.parse(require('fs').readFileSync('package.json', 'utf8')).version")"
+          artifact="${NPM_PACKAGE_NAME}/-/${NPM_PACKAGE_NAME##*/}-${version}.tgz"
+
+          dev_sha="$(
+            jf rt curl -f -sS "/api/storage/${NPM_DEV_REPO}/${artifact}" \
+              | jq -er '.checksums.sha256 | select(type == "string" and length == 64)'
+          )"
+
+          staging_sha="$(
+            jf rt curl -f -sS "/api/storage/${NPM_STAGING_REPO}/${artifact}" \
+              | jq -er '.checksums.sha256 | select(type == "string" and length == 64)'
+          )"
+
+          if [ "$dev_sha" != "$staging_sha" ]; then
+            echo "STOP: DEV and STAGING checksums differ."
+            exit 1
+          fi
+
+          echo "Verified package: ${artifact}"
+          echo "DEV and STAGING SHA-256 match: ${staging_sha}"
