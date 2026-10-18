@@ -105,7 +105,10 @@ jobs:
 
       - name: Xray policy gate
         timeout-minutes: 8
+        env:
+          JFROG_CLI_LOG_LEVEL: DEBUG
         run: |
+          jf --version
           jf build-scan \
             "$JFROG_CLI_BUILD_NAME" "$JFROG_CLI_BUILD_NUMBER" \
             --project="$JF_PROJECT" \
