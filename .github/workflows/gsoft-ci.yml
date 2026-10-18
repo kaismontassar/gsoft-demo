@@ -38,6 +38,7 @@ jobs:
           npm --version
 
       - name: Set up JFrog CLI with OIDC
+        id: jfrog_setup
         uses: jfrog/setup-jfrog-cli@v4
         with:
           oidc-provider-name: globalsoft-github
@@ -102,6 +103,62 @@ jobs:
             --project="$JF_PROJECT" \
             --collect-git-info \
             --build-url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+
+      - name: Inspect CI authorization
+        env:
+          DIAGNOSTIC_JF_TOKEN: ${{ steps.jfrog_setup.outputs.oidc-token }}
+        run: |
+          python3 - <<'PYTOKEN'
+          import base64
+          import json
+          import os
+          import time
+          from urllib.request import Request, urlopen
+          from urllib.error import HTTPError
+          from urllib.parse import quote, urlencode
+
+          token = os.environ.get("DIAGNOSTIC_JF_TOKEN", "")
+          if not token:
+              raise SystemExit("Token output unavailable; no credentials printed.")
+
+          parts = token.split(".")
+          if len(parts) == 3:
+              try:
+                  payload = parts[1] + "=" * (-len(parts[1]) % 4)
+                  claims = json.loads(base64.urlsafe_b64decode(payload))
+              except Exception:
+                  raise SystemExit("Could not decode token metadata.")
+              for key in ("scope", "aud"):
+                  print(f"{key}: {json.dumps(claims.get(key))}")
+              if isinstance(claims.get("exp"), (int, float)):
+                  print("Token seconds remaining:", int(claims["exp"] - time.time()))
+          else:
+              print("Opaque token: role metadata cannot be decoded locally.")
+
+          base = os.environ["JF_URL"].rstrip("/")
+          name = quote(os.environ["JFROG_CLI_BUILD_NAME"], safe="")
+          number = quote(os.environ["JFROG_CLI_BUILD_NUMBER"], safe="")
+          query = urlencode({"project": os.environ["JF_PROJECT"]})
+          checks = [
+              ("Xray version", "/xray/api/v1/system/version"),
+              ("Published build read", f"/artifactory/api/build/{name}/{number}?{query}")
+          ]
+          for label, endpoint in checks:
+              request = Request(
+                  base + endpoint,
+                  headers={"Authorization": "Bearer " + token}
+              )
+              try:
+                  with urlopen(request, timeout=20) as response:
+                      print(f"{label}: HTTP {response.status}")
+                      if label == "Xray version":
+                          data = json.load(response)
+                          print("Xray version:", data.get("version", "not supplied"))
+              except HTTPError as error:
+                  print(f"{label}: HTTP {error.code}")
+              except Exception:
+                  print(f"{label}: connection failed")
+          PYTOKEN
 
       - name: Xray policy gate
         timeout-minutes: 8
