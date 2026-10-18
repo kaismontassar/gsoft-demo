@@ -111,3 +111,40 @@ jobs:
             --project="$JF_PROJECT" \
             --fail=true \
             --extended-table=true
+
+      - name: Promote approved build to STAGING
+        run: |
+          jf rt build-promote \
+            "$JFROG_CLI_BUILD_NAME" "$JFROG_CLI_BUILD_NUMBER" \
+            gsoft-npm-staging-local \
+            --project="$JF_PROJECT" \
+            --source-repo=gsoft-npm-dev-local \
+            --copy=true \
+            --include-dependencies=false \
+            --status=STAGING \
+            --comment="Tests and Xray policy gate passed"
+
+      - name: Verify promoted package checksum
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="$(node -p "JSON.parse(require('fs').readFileSync('package.json', 'utf8')).version")"
+          artifact="gsoft-demo/-/gsoft-demo-${version}.tgz"
+
+          dev_sha="$(
+            jf rt curl -f -sS "/api/storage/gsoft-npm-dev-local/${artifact}" \
+              | jq -er '.checksums.sha256 | select(type == "string" and length == 64)'
+          )"
+
+          staging_sha="$(
+            jf rt curl -f -sS "/api/storage/gsoft-npm-staging-local/${artifact}" \
+              | jq -er '.checksums.sha256 | select(type == "string" and length == 64)'
+          )"
+
+          if [ "$dev_sha" != "$staging_sha" ]; then
+            echo "STOP: DEV and STAGING checksums differ."
+            exit 1
+          fi
+
+          echo "Verified package: ${artifact}"
+          echo "DEV and STAGING SHA-256 match: ${staging_sha}"
