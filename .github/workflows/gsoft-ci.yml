@@ -128,7 +128,7 @@ jobs:
                   claims = json.loads(base64.urlsafe_b64decode(payload))
               except Exception:
                   raise SystemExit("Could not decode token metadata.")
-              for key in ("scope", "aud"):
+              for key in ("scp", "aud"):
                   print(f"{key}: {json.dumps(claims.get(key))}")
               if isinstance(claims.get("exp"), (int, float)):
                   print("Token seconds remaining:", int(claims["exp"] - time.time()))
@@ -153,11 +153,41 @@ jobs:
                       print(f"{label}: HTTP {response.status}")
                       if label == "Xray version":
                           data = json.load(response)
-                          print("Xray version:", data.get("version", "not supplied"))
+                          print("Xray version:", data.get("xray_version", data.get("version", "not supplied")))
               except HTTPError as error:
                   print(f"{label}: HTTP {error.code}")
               except Exception:
                   print(f"{label}: connection failed")
+
+          scan_url = base + "/xray/api/v2/ci/build?" + urlencode({
+              "projectKey": os.environ["JF_PROJECT"]
+          })
+          payload = json.dumps({
+              "build_name": os.environ["JFROG_CLI_BUILD_NAME"],
+              "build_number": os.environ["JFROG_CLI_BUILD_NUMBER"],
+              "project": os.environ["JF_PROJECT"],
+              "rescan": False
+          }).encode()
+          request = Request(
+              scan_url,
+              data=payload,
+              method="POST",
+              headers={
+                  "Authorization": "Bearer " + token,
+                  "Content-Type": "application/json"
+              }
+          )
+          try:
+              with urlopen(request, timeout=30) as response:
+                  print("Direct scan API: HTTP", response.status)
+                  body = response.read(8192).decode(errors="replace")
+                  print("Scan API response:", json.dumps(body.replace(token, "[REDACTED]")))
+          except HTTPError as error:
+              print("Direct scan API: HTTP", error.code)
+              body = error.read(8192).decode(errors="replace")
+              print("Scan API response:", json.dumps(body.replace(token, "[REDACTED]")))
+          except Exception:
+              print("Direct scan API: connection failed or timed out.")
           PYTOKEN
 
       - name: Xray policy gate
