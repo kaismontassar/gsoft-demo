@@ -12,18 +12,30 @@ permissions:
 env:
   JF_URL: https://jfrogkmm.jfrog.io
   JF_PROJECT: gsoft
+  JFROG_CLI_BUILD_NAME: gsoft-demo
+  JFROG_CLI_BUILD_NUMBER: "${{ github.run_number }}.${{ github.run_attempt }}"
 
 jobs:
-  oidc-check:
-    name: OIDC authentication and DEV read access
+  ci:
+    name: Build and package
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
 
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
         with:
           persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+
+      - name: Show runtime versions
+        run: |
+          node --version
+          npm --version
 
       - name: Set up JFrog CLI with OIDC
         uses: jfrog/setup-jfrog-cli@v4
@@ -40,4 +52,35 @@ jobs:
         run: |
           jf rt curl -f -sS "/api/storage/gsoft-npm-dev-local" \
             | jq -e '.repo == "gsoft-npm-dev-local"'
-          echo "DEV repository read check passed."
+
+      - name: Configure npm repositories
+        run: |
+          jf npm-config \
+            --server-id-resolve=setup-jfrog-cli-server \
+            --repo-resolve=gsoft-npm-dev-virtual \
+            --server-id-deploy=setup-jfrog-cli-server \
+            --repo-deploy=gsoft-npm-dev-local
+
+      - name: Install dependencies and collect build information
+        run: |
+          jf npm ci \
+            --ignore-scripts \
+            --no-audit \
+            --no-fund \
+            --build-name="$JFROG_CLI_BUILD_NAME" \
+            --build-number="$JFROG_CLI_BUILD_NUMBER" \
+            --module=gsoft-demo
+
+      - name: Run tests
+        run: npm test
+
+      - name: Build application
+        run: npm run build
+
+      - name: Package application
+        shell: bash
+        run: |
+          mkdir -p "$RUNNER_TEMP/gsoft-package"
+          npm pack --ignore-scripts \
+            --pack-destination "$RUNNER_TEMP/gsoft-package"
+          test -s "$RUNNER_TEMP/gsoft-package/gsoft-demo-1.0.0.tgz"
