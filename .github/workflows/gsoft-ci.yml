@@ -61,6 +61,9 @@ jobs:
             --server-id-deploy=setup-jfrog-cli-server \
             --repo-deploy=gsoft-npm-dev-local
 
+      - name: Initialize npm cache
+        run: mkdir -p "$(npm config get cache)/_cacache"
+
       - name: Install dependencies and collect build information
         run: |
           jf npm ci \
