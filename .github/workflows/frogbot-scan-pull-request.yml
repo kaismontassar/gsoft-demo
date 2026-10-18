@@ -1,0 +1,59 @@
+name: Frogbot Scan Pull Request
+
+on:
+  pull_request_target:
+    branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+  pull-requests: write
+  security-events: write
+  id-token: write
+
+concurrency:
+  group: frogbot-pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  scan-pull-request:
+    name: Frogbot PR scan
+    if: >-
+      github.event.pull_request.draft == false &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: frogbot
+
+    env:
+      JF_URL: https://jfrogkmm.jfrog.io
+      JF_PROJECT: gsoft
+      NPM_CONFIG_IGNORE_SCRIPTS: "true"
+
+    steps:
+      - name: Checkout trusted base revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+
+      - name: Authenticate to JFrog with OIDC
+        id: jfrog_setup
+        uses: jfrog/setup-jfrog-cli@v4
+        with:
+          oidc-provider-name: globalsoft-github
+          oidc-audience: globalsoft-github-actions
+          disable-auto-build-publish: true
+
+      - name: Scan pull request with Frogbot
+        uses: jfrog/frogbot@v2
+        env:
+          JF_ACCESS_TOKEN: ${{ steps.jfrog_setup.outputs.oidc-token }}
+          JF_GIT_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          JF_DEPS_REPO: gsoft-npm-dev-virtual
+          JF_FAIL: "true"
