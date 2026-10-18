@@ -57,3 +57,5 @@ jobs:
           JF_GIT_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           JF_DEPS_REPO: gsoft-npm-dev-virtual
           JF_FAIL: "true"
+          JFROG_CLI_LOG_LEVEL: DEBUG
+          CI: "true"
