@@ -102,3 +102,12 @@ jobs:
             --project="$JF_PROJECT" \
             --collect-git-info \
             --build-url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+
+      - name: Xray policy gate
+        timeout-minutes: 8
+        run: |
+          jf build-scan \
+            "$JFROG_CLI_BUILD_NAME" "$JFROG_CLI_BUILD_NUMBER" \
+            --project="$JF_PROJECT" \
+            --fail=true \
+            --extended-table=true
