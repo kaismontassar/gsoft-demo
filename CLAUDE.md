@@ -15,7 +15,8 @@ JFrog demo project (GlobalSoft). It shows:
 
 ## Environment
 
-- JFrog CLI server ID: `gsoft` (platform `https://jfrogkmm.jfrog.io`, project `gsoft`).
+- JFrog CLI server ID: `gsoft` (platform `https://jfrogkmm.jfrog.io`, project `gsoft`). Use `gsoft` for all demo-related topics.
+- `gsoft-admin` is the admin login for the same platform. Always ask before using it.
 - Second repo using the shared CI template: `kaismontassar/gsoft-demo-consumer`.
 
 ## Conventions

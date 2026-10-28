@@ -72,8 +72,25 @@ Add a walkthrough of the PR comment: CVE, severity, fixed version, contextual an
 ### F9 R2 gap: rollout
 No step yet. Talking points available in this setup: org-wide ruleset with the required check, shared workflow template, start with `JF_FAIL=false` (report only) then enforce, required reviewers on the `frogbot` environment for repos that accept outside contributions (F7), required PR approvals on top of the Frogbot check, optionally Frogbot "scan repository" for automatic fix PRs.
 
-### F10 R3 gap: OIDC that scales
-Currently only an intro bullet. Show: one provider used by two repos and two workflow types; identity mappings on claims (`repository`, `ref`, `environment`, optionally `job_workflow_ref` to allow only the shared template) giving different scopes (main CI deploys, PR scan reads). The `frogbot` environment (F7) gives Frogbot runs their own `environment` claim, so a dedicated read-only mapping is possible; onboarding a new repo needs no secret. The mappings could not be read with the `gsoft` user (access API 404/403). Verify in the UI that they actually differ per use case; one catch-all mapping makes the scaling story thin.
+### F10 R3: OIDC that scales
+Read with `gsoft-admin` on 2026-10-28. Provider `globalsoft-github`: issuer `https://token.actions.githubusercontent.com`, audience `globalsoft-github-actions`, permissive configuration off. Identity mappings (project `gsoft`, lower priority number wins):
+
+| Priority | Mapping                      | Matches (claims)                                                                                                                      | Token (project roles, lifetime)                  |
+| -------- | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
+| 9        | `globalsoft-branches`        | `ref` `refs/heads/demo/*`, repository `kaismontassar/gsoft-demo`; any workflow, any event                                             | `globalsoft-ci` + `globalsoft-promote`, **60 h** |
+| 10       | `globalsoft-main-ci`         | `workflow_ref` `…/globalsoft-ci.yml@refs/heads/main`, which does not exist (the file is `gsoft-ci.yml`), so it never matches          | `globalsoft-ci`, 15 min                          |
+| 15       | `globalsoft-shared-npm-ci`   | `ref` `refs/heads/main`, push/dispatch, repo IDs gsoft-demo and gsoft-demo-consumer, `job_workflow_ref` `…/jfrog-npm-ci.yml@ef72c08…` | `globalsoft-ci` + `globalsoft-promote`, 15 min   |
+| 30       | `globalsoft-demo-frogbot-pr` | `ref` main, `environment` `frogbot`, `pull_request_target`, `workflow_ref` `…/frogbot-scan-pull-request.yml@refs/heads/main`          | `globalsoft-pr-scan`, 15 min                     |
+
+Roles: `globalsoft-ci` reads and deploys builds/packages in DEV; `globalsoft-promote` deploys to `gsoft-STAGING`; `globalsoft-pr-scan` only reads repositories and security policies.
+
+Good for the scaling story: one provider for two repos and three use cases, a dedicated read-only Frogbot mapping tied to the `frogbot` environment (F7, keep the environment), the shared template enforced through `job_workflow_ref`, onboarding a repo by adding its repository ID, 15-minute tokens, DEV vs. STAGING separation.
+
+Problems:
+- **Blocker:** `globalsoft-shared-npm-ci` only accepts the shared workflow at `@ef72c08`. With `gsoft-ci.yml` on `@ci-v1` (F5) the claim becomes `…/jfrog-npm-ci.yml@refs/tags/ci-v1`, so after the merge **CI on `main` gets no token**. Add `@refs/tags/ci-v1` to the claim before merging (keep `@ef72c08` for the consumer repo).
+- `globalsoft-branches` is a catch-all: any workflow on `demo/*`, promote role included, 60-hour tokens, matched by repository name instead of ID. It is what makes demo branch builds work today. Narrow it: `job_workflow_ref` `@refs/tags/ci-v1`, repository ID, events push/dispatch, `globalsoft-ci` only, 15 minutes.
+- `globalsoft-main-ci` is dead (wrong file name) and lists a typo branch `demp/rehersal-voko` and repository ID `1412041612` (`kaismontassar/jfrog-gsoft`). Delete or fix it.
+- **Status (step 1 done, 2026-10-28):** `globalsoft-shared-npm-ci` now also accepts `@refs/tags/ci-v1`. New mapping `globalsoft-demo-branches` (priority 20): repository ID `1422050217`, `refs/heads/demo/*`, push/dispatch, `job_workflow_ref` `…/jfrog-npm-ci.yml@refs/tags/ci-v1`, role `globalsoft-ci` only, 15 minutes. Open: push tags and branch (step 2), delete `globalsoft-branches` and `globalsoft-main-ci` and rerun the branch build (step 3), merge (step 4).
 
 ### F11 R4 gap: IDE plugin
 A.2 is undefined. Use the JFrog IDE plugin (VS Code or IntelliJ) connected to `jfrogkmm.jfrog.io` with project `gsoft`, flagging lodash 4.17.11 in `package.json`. Needs install, config and rehearsal, including a check that the plugin scan works while download blocking is on.

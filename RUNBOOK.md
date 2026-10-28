@@ -42,20 +42,21 @@ Two short stories with the same mistake (lodash 4.17.11), covering the JFrog req
 
 All items are blockers unless marked optional.
 
-| Step | Task                                                                                                               | Where          | Script       | Ref    |
-| ---- | ------------------------------------------------------------------------------------------------------------------ | -------------- | ------------ | ------ |
-| P.1  | Workflow changes merged to `main` and tag `ci-v1` pushed (`gsoft-ci.yml` uses `@ci-v1`)                            | Terminal, Web  |              | F5     |
-| P.2  | Branch-name check in `03a`, `03d`, `04d` accepts `demo/will-fail-*` (today only `demo/rehearsal-*`, `demo/live-*`) | IDE            |              | F13    |
-| P.3  | Download blocking **off** on `globalsoft-critical-cve-fix`; an admin is available to switch it on in S.11          | Web: jf-home   |              | F1, F2 |
-| P.4  | Rehearse how quickly the block applies to the cached lodash 4.17.11 after switching it on                          | Web: jf-lodash |              | F1     |
-| P.5  | Keep the `frogbot` environment, but remove its required reviewer for the session (or add the presenter)            | Web: gh-envs   |              | F7     |
-| P.6  | Install the JFrog VS Code extension, connect to `jfrogkmm.jfrog.io`, set project `gsoft`                           | IDE            |              | F11    |
-| P.7  | Check the SBOM export of the last green `gsoft-demo` build and keep one file ready                                 | Web: jf-builds |              | F12    |
-| P.8  | lodash 4.17.11 is in the local npm cache (`03a` installs offline); do not clear the cache                          | Terminal       |              | F13    |
-| P.9  | Preflight and baseline on `main`                                                                                   | Terminal       | `01b`, `01d` |        |
-| P.10 | Open browser tabs for all links, logged in to GitHub and JFrog                                                     | Web            |              |        |
-| P.11 | Close leftover PRs (#1, #7) and delete old `demo/will-fail-*` branches                                             | Web: gh-pulls  |              | F14    |
-| P.12 | Optional backup: screenshot of a blocked install (for example run `40750669146`)                                   | Web: gh-ci     |              | F1     |
+| Step | Task                                                                                                                 | Where          | Script       | Ref    |
+| ---- | -------------------------------------------------------------------------------------------------------------------- | -------------- | ------------ | ------ |
+| P.0  | OIDC mappings per trust level: main (15), `demo/*` (20), Frogbot (30); catch-all 9 and dead 10 deleted (status: F10) | Web: jf-oidc   |              | F10    |
+| P.1  | Workflow changes merged to `main` and tag `ci-v1` pushed (`gsoft-ci.yml` uses `@ci-v1`)                              | Terminal, Web  |              | F5     |
+| P.2  | Branch-name check in `03a`, `03d`, `04d` accepts `demo/will-fail-*` (today only `demo/rehearsal-*`, `demo/live-*`)   | IDE            |              | F13    |
+| P.3  | Download blocking **off** on `globalsoft-critical-cve-fix`; an admin is available to switch it on in S.11            | Web: jf-home   |              | F1, F2 |
+| P.4  | Rehearse how quickly the block applies to the cached lodash 4.17.11 after switching it on                            | Web: jf-lodash |              | F1     |
+| P.5  | Keep the `frogbot` environment, but remove its required reviewer for the session (or add the presenter)              | Web: gh-envs   |              | F7     |
+| P.6  | Install the JFrog VS Code extension, connect to `jfrogkmm.jfrog.io`, set project `gsoft`                             | IDE            |              | F11    |
+| P.7  | Check the SBOM export of the last green `gsoft-demo` build and keep one file ready                                   | Web: jf-builds |              | F12    |
+| P.8  | lodash 4.17.11 is in the local npm cache (`03a` installs offline); do not clear the cache                            | Terminal       |              | F13    |
+| P.9  | Preflight and baseline on `main`                                                                                     | Terminal       | `01b`, `01d` |        |
+| P.10 | Open browser tabs for all links, logged in to GitHub and JFrog                                                       | Web            |              |        |
+| P.11 | Close leftover PRs (#1, #7) and delete old `demo/will-fail-*` branches                                               | Web: gh-pulls  |              | F14    |
+| P.12 | Optional backup: screenshot of a blocked install (for example run `40750669146`)                                     | Web: gh-ci     |              | F1     |
 
 ## Session
 
