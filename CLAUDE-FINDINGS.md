@@ -50,9 +50,11 @@ The notes describe workflow A as "without blocking downloads", which does not ma
 ### F5 `gsoft-ci.yml` (caller)
 - Triggers: push to `main`, `workflow_dispatch`. Fits "always merge to main".
 - Pin differs: `main` uses `@ef72c08`, `demo/voko` uses `@12ba32a` (npm cache step commented out). The working copy of `jfrog-npm-ci.yml` was restored from `main`, but it has no effect while the caller pins `12ba32a`. Merging `demo/voko` would move main's pin; restore the caller to main's version first.
+- **Status (prepared on `demo/voko`):** the caller now runs on pushes to `main` and `demo/**` and uses the tag `@ci-v1` instead of a commit SHA. The tag still has to be created and pushed.
 
 ### F6 R1 gaps: pipeline
 - Show a live **gate** failure: either (a) run CI once with blocking off (gate fails), then with blocking on (install fails, "even earlier"), or (b) add a policy with *fail build* but no block download, triggered by a different vulnerable version.
+- **Status (prepared on `demo/voko`):** `jfrog-npm-ci.yml` has a new input `enforce-branch` (default `main`). The gate fails the build and promotion runs only on that branch; other branches report violations. RUNBOOK.md uses this for "fail right" and switches blocking on for "fail left".
 - Add a step that shows the result in Artifactory: package in `gsoft-npm-staging-local`, build info with STAGING status, the build's Xray tab.
 
 ### F7 `frogbot-scan-pull-request.yml`

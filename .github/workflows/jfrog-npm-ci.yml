@@ -18,6 +18,11 @@ on:
       build-name:
         required: true
         type: string
+      enforce-branch:
+        description: Branch on which the Xray gate fails the build and approved builds are promoted
+        required: false
+        type: string
+        default: main
 
 permissions:
   contents: read
@@ -31,6 +36,7 @@ env:
   NPM_STAGING_REPO: ${{ inputs.npm-staging-repo }}
   JFROG_CLI_BUILD_NAME: ${{ inputs.build-name }}
   JFROG_CLI_BUILD_NUMBER: "${{ github.run_id }}.${{ github.run_attempt }}"
+  ENFORCE_GATE: ${{ github.ref == format('refs/heads/{0}', inputs.enforce-branch) }}
 
 jobs:
   ci:
@@ -122,16 +128,18 @@ jobs:
             --collect-git-info \
             --build-url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
 
+      # Other branches report violations without failing; only the enforce branch is gated and promoted.
       - name: Xray policy gate
         timeout-minutes: 8
         run: |
           jf build-scan \
             "$JFROG_CLI_BUILD_NAME" "$JFROG_CLI_BUILD_NUMBER" \
             --project="$JF_PROJECT" \
-            --fail=true \
+            --fail="$ENFORCE_GATE" \
             --extended-table=true
 
       - name: Promote approved build to STAGING
+        if: env.ENFORCE_GATE == 'true'
         run: |
           jf rt build-promote \
             "$JFROG_CLI_BUILD_NAME" "$JFROG_CLI_BUILD_NUMBER" \
@@ -144,6 +152,7 @@ jobs:
             --comment="Tests and Xray policy gate passed"
 
       - name: Verify promoted package checksum
+        if: env.ENFORCE_GATE == 'true'
         shell: bash
         run: |
           set -euo pipefail
