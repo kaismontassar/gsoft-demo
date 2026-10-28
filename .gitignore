@@ -6,3 +6,5 @@ dist/
 !.env.example
 .npmrc
 *.log
+.DS_Store
+
