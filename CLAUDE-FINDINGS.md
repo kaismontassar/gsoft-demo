@@ -58,20 +58,22 @@ The notes describe workflow A as "without blocking downloads", which does not ma
 - Add a step that shows the result in Artifactory: package in `gsoft-npm-staging-local`, build info with STAGING status, the build's Xray tab.
 
 ### F7 `frogbot-scan-pull-request.yml`
-- Ruleset `main-require-frogbot` requires the check "Frogbot PR scan" on the default branch, so a red Frogbot really blocks the merge.
+- Ruleset `main-require-frogbot` requires a PR with **0 approving reviews** and the check "Frogbot PR scan" on the default branch. A red Frogbot really blocks the merge, and the presenter can merge without a second person. This fits the demo; real teams add required approvals on top (rollout, F9).
 - `pull_request_target` with checkout of the trusted base SHA is the correct secure pattern. It always runs the workflow file from `main`, so edits on demo branches have no effect.
-- Environment `frogbot` requires approval from **kaismontassar** on every run. A solo presenter waits at A.5 and A.8.
-- Earlier rehearsals show the red/green sequence ("Found 10 violations: [10 SCA]"). It is unclear whether Frogbot still works with download blocking on (F1); rehearse it.
+- Environment `frogbot` requires approval from **kaismontassar** on every run. A solo presenter waits at every Frogbot run (two in the 30-minute flow).
+- The reviewer rule protects `pull_request_target` runs (secrets and OIDC token) against untrusted PRs, as recommended in JFrog's Frogbot setup. Here fork PRs are already excluded, so it only guards against people who can push anyway. None of R1–R4 needs it.
+- **Decision:** keep the `frogbot` environment, remove the required reviewer for the session (or add the presenter). The environment name stays in the OIDC token as the `environment` claim (F10).
+- Earlier rehearsals show the red/green sequence ("Found 10 violations: [10 SCA]"). It is unclear whether Frogbot still works with download blocking on (F1); the 30-minute flow avoids this by running Frogbot only while blocking is off.
 - Only same-repo PRs are scanned (forks excluded).
 
 ### F8 R2 gap: what Frogbot reports and what the developer does
 Add a walkthrough of the PR comment: CVE, severity, fixed version, contextual analysis (is the vulnerable code reachable), plus the SAST/secrets/IaC scanners that ran. Make the developer action explicit: take the fixed version from the comment, bump, push, check turns green.
 
 ### F9 R2 gap: rollout
-No step yet. Talking points available in this setup: org-wide ruleset with the required check, shared workflow template, start with `JF_FAIL=false` (report only) then enforce, `frogbot` environment as approval gate, optionally Frogbot "scan repository" for automatic fix PRs.
+No step yet. Talking points available in this setup: org-wide ruleset with the required check, shared workflow template, start with `JF_FAIL=false` (report only) then enforce, required reviewers on the `frogbot` environment for repos that accept outside contributions (F7), required PR approvals on top of the Frogbot check, optionally Frogbot "scan repository" for automatic fix PRs.
 
 ### F10 R3 gap: OIDC that scales
-Currently only an intro bullet. Show: one provider used by two repos and two workflow types; identity mappings on claims (`repository`, `ref`, `environment`, optionally `job_workflow_ref` to allow only the shared template) giving different scopes (main CI deploys, PR scan reads); onboarding a new repo needs no secret. The mappings could not be read with the `gsoft` user (access API 404/403). Verify in the UI that they actually differ per use case; one catch-all mapping makes the scaling story thin.
+Currently only an intro bullet. Show: one provider used by two repos and two workflow types; identity mappings on claims (`repository`, `ref`, `environment`, optionally `job_workflow_ref` to allow only the shared template) giving different scopes (main CI deploys, PR scan reads). The `frogbot` environment (F7) gives Frogbot runs their own `environment` claim, so a dedicated read-only mapping is possible; onboarding a new repo needs no secret. The mappings could not be read with the `gsoft` user (access API 404/403). Verify in the UI that they actually differ per use case; one catch-all mapping makes the scaling story thin.
 
 ### F11 R4 gap: IDE plugin
 A.2 is undefined. Use the JFrog IDE plugin (VS Code or IntelliJ) connected to `jfrogkmm.jfrog.io` with project `gsoft`, flagging lodash 4.17.11 in `package.json`. Needs install, config and rehearsal, including a check that the plugin scan works while download blocking is on.
