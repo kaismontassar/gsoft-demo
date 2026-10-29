@@ -7,7 +7,7 @@ JFrog demo project (GlobalSoft). It shows:
 
 ## Layout
 
-- `.github/workflows/`: `jfrog-npm-ci.yml` (reusable CI), `gsoft-ci.yml` (caller, pinned to a commit SHA), `frogbot-scan-pull-request.yml` (Frogbot PR scan).
+- `.github/workflows/`: `jfrog-npm-ci.yml` (reusable CI), `gsoft-ci.yml` (caller, references the reusable CI by tag `@ci-v1`), `frogbot-scan-pull-request.yml` (Frogbot PR scan).
 - `sbin/`: demo step scripts named `<step>-<summary>.sh`. Each script changes into the repo root (one directory up from `sbin/`) and loads `sbin/.env`; no hard-coded values or `$HOME` paths in the scripts.
 - `RUNBOOK.md`: 30-minute session (preparation, timed steps, fallbacks); holds the location and link definitions.
 - `RUNBOOK-FULL.md`: full version with workflows A and B; references the links in `RUNBOOK.md`.
