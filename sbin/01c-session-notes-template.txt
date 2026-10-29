@@ -1,0 +1,10 @@
+SESSION NOTE — fill this in; do not run it in the terminal.
+Session: rehearsal or live
+Date:
+Branch: demo/rehearsal-DDMMYYYY-01 or demo/live-DDMMYYYY-01
+Use the real date; increase 01 for another session on the same day.
+
+PR link: fill after 4a
+Main build number / Actions link: fill after 5d
+Consumer build number / Actions link: fill after 5f
+Package version / SHA-256: copy from the successful main CI run

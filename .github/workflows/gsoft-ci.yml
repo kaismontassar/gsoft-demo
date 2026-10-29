@@ -2,7 +2,7 @@ name: gsoft-demo
 
 on:
   push:
-    branches: [main]
+    branches: [main, 'demo/**']
   workflow_dispatch:
 
 permissions:
@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   ci:
-    uses: kaismontassar/gsoft-demo/.github/workflows/jfrog-npm-ci.yml@ef72c08e41a741b75988a3a94849b988d4d1c390
+    uses: kaismontassar/gsoft-demo/.github/workflows/jfrog-npm-ci.yml@ci-v1
     with:
       project-key: gsoft
       npm-resolve-repo: gsoft-npm-dev-virtual
