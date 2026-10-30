@@ -80,7 +80,7 @@ All items are blockers unless marked optional.
 | S.5   | 9–10  | create the PR                                                                                                               | Terminal, then Web: gh-pulls                          | `03d`  | –   |        |
 | S.6   | 10–12 | Branch build green: gate step lists the violations but does not fail; no promotion on branches                              | Web: gh-ci (run, "Xray policy gate" log)              |        | R1  | F6     |
 | S.7   | 12–16 | Approve the Frogbot run (`frogbot` environment); Frogbot red, PR blocked: walk through the comment, what the developer does | Web: PR page                                          |        | R2  | F7, F8 |
-| S.8   | 16–17 | Fix: restore lodash 4.18.1, test, commit, push                                                                              | Terminal                                              | `04d`  | –   | F13    |
+| S.8   | 16–17 | Fix: restore lodash 4.18.1, test, commit, push , APPROVE THE FROGBOT                                                        | Terminal                                              | `04d`  | –   | F13    |
 | S.9   | 17–20 | While CI and Frogbot rerun: SBOM walkthrough of the last green build                                                        | Web: jf-builds (build › Xray Data › Export) *(check)* |        | R4  | F12    |
 | S.10  | 20–22 | Branch build and Frogbot green, merge; CI on `main`: gate enforced and passes, promotion to STAGING; show package           | Web: PR page, gh-ci, jf-builds, jf-staging            |        | R1  | F6     |
 
