@@ -11,7 +11,25 @@ Two short stories with the same mistake (lodash 4.17.11), covering the JFrog req
 | ---- | ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
 | P-01 | sbin/01-preparation.sh       | clears git working copy and remote branches, pulls main, turns downloadblock off                                                             |
 | P-02 | sbin/open-links.sh           | opens `DEMO_LINKS` from `sbin/.env` (or the URLs given as arguments) in a browser window. See comments for other browser options under linux |
-| P-03 | optional: run IDE jfrog scan | run from `main`, should tell that all is fine                                                                                                                                          |
+| P-03 | optional: run IDE jfrog scan | run from `main`, should tell that all is fine                                                                                                |
+| P-04 | Once only                    | Setup three tokens and three server IDs for jfrog cli, see below                                                                             |
+|      |                              |                                                                                                                                              |
+
+### Prep: server IDs
+
+* create two tokens and set the names in .env
+* check examples at https://jfrogkmm.jfrog.io/ui/admin/configuration/security/access_tokens
+| desrciption example | .env variable    | volker's name | comment                        |
+| ------------------- | ---------------- | ------------- | ------------------------------ |
+| voko-admin          | SERVER_ID        | gsoft         | currently only used by AI      |
+| vokostudio-curl     | POLICY_SERVER_ID | gsoft-voko    | needed for `set-policy-block*` |
+
+```bash
+jf config add gsoft-user --url https://jfrogkmm.jfrog.io
+# then select token and paste your token value
+# afterwards set POLICY_SERVER_ID to 'gsoft-user'
+
+```
 
 ## Intro
 
@@ -46,11 +64,29 @@ Two short stories with the same mistake (lodash 4.17.11), covering the JFrog req
 
 ## fail left
 
-| Step  | Do                                                            | Where  | Comments                |
-| ----- | ------------------------------------------------------------- | ------ | ----------------------- |
-| FL-01 | enable blocking `sbin/set-policy-block.sh true`               | shell  | or use the jfrog web UI |
-| FL-02 | `git switch main; git pull ; git checkout -b demo/fail-left`  | shell  |                         |
-| FL-03 | introduce the vul again                                       | IDE    |                         |
-| FL-04 | `npm install; git commit -am "done it again/left" ; git push` | shell  |                         |
-| FL-05 | see the build fail directly                                   | github | currently NOT failing!! |
-| FL-07 | run a change/PR in gsoft-demo-consumer                        | IDE    | shows OIDC reuse |
+| Step         | Do                                                            | Where  | Comments                  |
+| ------------ | ------------------------------------------------------------- | ------ | ------------------------- |
+| FL-01        | enable blocking `sbin/set-policy-block.sh true`               | shell  | or use the jfrog web UI   |
+| FL-02        | `git switch main; git pull ; git checkout -b demo/fail-left`  | shell  |                           |
+| FL-03        | introduce the vul again                                       | IDE    |                           |
+| FL-04        | `npm install; git commit -am "done it again/left" ; git push` | shell  |                           |
+| FL-05        | see the build fail directly                                   | github | currently NOT failing!!   |
+| INTERMISSION | ------ below is not reproduced yet, seel also TODO-01 ------- |        |                           |
+| FL-07        | run a change/PR in gsoft-demo-consumer                        | IDE    | shows OIDC reuse          |
+| FL-08        | see the build being scanned using the action and OIDC         | github | ? with vul or without ? |
+
+## FINDINGS
+
+### Policy change does not block
+
+curious behaviour, depending on the direction of the switch. Please try to reproduce
+
+**blocked --> not blocked**: refreshing the XRay page for the artifact will clear the blockage
+**non-blocked --> blocked**: refreshing has no effect, a rescan is required, then the block works
+
+## TODOs
+
+| ID      | What                                                                  | Status |
+| ------- | --------------------------------------------------------------------- | ------ |
+| TODO-01 | make gsoft-demo-consumer also start the build upon push automatically | new    |
+| TODO-02 |                                                                       |        |

@@ -14,10 +14,10 @@ usage() {
   cat <<EOF
 Usage: $(basename "$0") [-p|--project KEY] [-h|--help] [true|false] [policy]
 
-Switch Xray download blocking on every rule of a policy, re-check the
-watches that use it ("Apply on existing content") and wait until a test
-download of lodash $VULNERABLE_LODASH_VERSION returns the expected status
-(true: 403, false: 200).
+Switch Xray download blocking on every rule of a policy, rescan the cached
+test artifact lodash $VULNERABLE_LODASH_VERSION (a policy change only applies
+after the artifact is scanned again) and wait until its download returns the
+expected status (true: 403, false: 200).
 
 Arguments:
   true|false            true = block downloads, false = allow (default: true)
@@ -25,15 +25,13 @@ Arguments:
 
 Options:
   -p, --project KEY     Project of the policy (default: none = global policy)
-  -w, --watch-project KEY
-                        Project whose watches are searched for the policy
-                        (default: PROJECT_KEY from sbin/.env = ${PROJECT_KEY:-unset})
-  -d, --days N          Re-check content of the last N days (default: 90)
   -t, --timeout SEC     Max. wait for the test download (default: 900)
-  -n, --no-wait         Re-check the watches, but do not wait
+  -n, --no-wait         Rescan the artifact, but do not wait
   -h, --help            Show this help
 
-Server IDs from sbin/.env: policy and watches via POLICY_SERVER_ID
+Test artifact: \$NPM_REMOTE_CACHE/lodash/-/lodash-\$VULNERABLE_LODASH_VERSION.tgz
+(${NPM_REMOTE_CACHE:-unset}/lodash/-/lodash-${VULNERABLE_LODASH_VERSION:-unset}.tgz).
+Server IDs from sbin/.env: policy and rescan via POLICY_SERVER_ID
 (${POLICY_SERVER_ID:-unset}), test download via SERVER_ID (${SERVER_ID:-unset}).
 EOF
 }
@@ -43,8 +41,6 @@ need_value() {
 }
 
 PROJECT=""
-WATCH_PROJECT="${PROJECT_KEY:-}"
-DAYS=90
 TIMEOUT=900
 WAIT=true
 ARGS=()
@@ -53,10 +49,6 @@ while [ $# -gt 0 ]; do
     -h|--help) usage; exit 0 ;;
     -p|--project) need_value "$@"; PROJECT="$2"; shift 2 ;;
     --project=*) PROJECT="${1#*=}"; shift ;;
-    -w|--watch-project) need_value "$@"; WATCH_PROJECT="$2"; shift 2 ;;
-    --watch-project=*) WATCH_PROJECT="${1#*=}"; shift ;;
-    -d|--days) need_value "$@"; DAYS="$2"; shift 2 ;;
-    --days=*) DAYS="${1#*=}"; shift ;;
     -t|--timeout) need_value "$@"; TIMEOUT="$2"; shift 2 ;;
     --timeout=*) TIMEOUT="${1#*=}"; shift ;;
     -n|--no-wait) WAIT=false; shift ;;
@@ -70,8 +62,8 @@ ACTIVE="${ARGS[0]:-true}"
 POLICY="${ARGS[1]:-gsoft-critical-cve-fix}"
 case "$ACTIVE" in true|false) ;; *) echo "STOP: first argument must be true or false." >&2; usage >&2; exit 1 ;; esac
 [ -n "${POLICY_SERVER_ID:-}" ] || { echo "STOP: POLICY_SERVER_ID is not set in sbin/.env." >&2; exit 1; }
-case "$DAYS$TIMEOUT" in *[!0-9]*|"") echo "STOP: --days and --timeout must be numbers." >&2; exit 1 ;; esac
-[ -n "$WATCH_PROJECT" ] || { echo "STOP: no watch project (-w or PROJECT_KEY in sbin/.env)." >&2; exit 1; }
+case "$TIMEOUT" in *[!0-9]*|"") echo "STOP: --timeout must be a number." >&2; exit 1 ;; esac
+[ -n "${NPM_REMOTE_CACHE:-}" ] || { echo "STOP: NPM_REMOTE_CACHE is not set in sbin/.env." >&2; exit 1; }
 
 # Global policies are addressed without projectKey
 URL="/xray/api/v2/policies/$POLICY"
@@ -102,31 +94,15 @@ jq -r '
   (.rules[] | "Download block: \(if .actions.block_download.active then "on" else "off" end) (rule \(.name))")
 ' "$tmp/policy-saved.json"
 
-# Re-check the watches that use the policy, so existing violations get the new action
-watch_url="/xray/api/v2/watches?projectKey=$WATCH_PROJECT"
-jf api "$watch_url" --server-id="$POLICY_SERVER_ID" > "$tmp/watches.json"
-WATCHES=()
-while IFS= read -r w; do
-  [ -n "$w" ] && WATCHES+=("$w")
-done < <(jq -r --arg p "$POLICY" \
-  '.[] | select(.general_data.active == true) | select(any(.assigned_policies[]; .name == $p)) | .general_data.name' \
-  "$tmp/watches.json")
-[ ${#WATCHES[@]} -gt 0 ] || { echo "STOP: no active watch in project $WATCH_PROJECT uses $POLICY." >&2; exit 1; }
+# Rescan the cached test artifact: its existing scan result keeps the old
+# policy actions until the artifact itself is scanned again
+artifact="lodash/-/lodash-$VULNERABLE_LODASH_VERSION.tgz"
+jq -n -c --arg r "$NPM_REMOTE_CACHE" --arg p "$artifact" \
+  '{artifacts: [{repository: $r, path: $p}]}' > "$tmp/reindex.json"
 
-if date -u -v-1d +%s >/dev/null 2>&1; then
-  start="$(date -u -v-"${DAYS}"d +%Y-%m-%dT%H:%M:%SZ)"            # macOS
-else
-  start="$(date -u -d "$DAYS days ago" +%Y-%m-%dT%H:%M:%SZ)"       # Linux
-fi
-end="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-
-jq -n --arg s "$start" --arg e "$end" '$ARGS.positional as $w |
-  {watch_names: $w, date_range: {start_date: $s, end_date: $e}}' \
-  --args "${WATCHES[@]}" > "$tmp/apply.json"
-
-echo "Apply on existing content ($start .. $end): ${WATCHES[*]}"
-jf api "/xray/api/v1/applyWatch?projectKey=$WATCH_PROJECT" --server-id="$POLICY_SERVER_ID" \
-  -X POST -H "Content-Type: application/json" --input "$tmp/apply.json"
+echo "Rescan $NPM_REMOTE_CACHE/$artifact"
+jf api /xray/api/v1/forceReindex --server-id="$POLICY_SERVER_ID" \
+  -X POST -H "Content-Type: application/json" --input "$tmp/reindex.json"
 echo
 
 [ "$WAIT" = true ] || exit 0
