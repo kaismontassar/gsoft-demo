@@ -104,6 +104,7 @@ jobs:
             --build-name="$JFROG_CLI_BUILD_NAME" \
             --build-number="$JFROG_CLI_BUILD_NUMBER" \
             --module="$NPM_PACKAGE_NAME"
+          npm ls lodash
 
       - name: Run tests
         run: npm test
