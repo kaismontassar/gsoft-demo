@@ -12,7 +12,7 @@ Two short stories with the same mistake (lodash 4.17.11), covering the JFrog req
 | P-01 | sbin/01-preparation.sh       | clears git working copy and remote branches, pulls main, turns downloadblock off                                                             |
 | P-02 | sbin/open-links.sh           | opens `DEMO_LINKS` from `sbin/.env` (or the URLs given as arguments) in a browser window. See comments for other browser options under linux |
 | P-03 | optional: run IDE jfrog scan | run from `main`, should tell that all is fine                                                                                                |
-| P-04 | Once only                    | Setup three tokens and three server IDs for jfrog cli, see below                                                                             |
+| P-04 | Once only                    | Setup token(s) and server ID(s) for jfrog cli, see below                                                                             |
 |      |                              |                                                                                                                                              |
 
 ### Prep: server IDs
@@ -27,7 +27,7 @@ Two short stories with the same mistake (lodash 4.17.11), covering the JFrog req
 ```bash
 jf config add gsoft-user --url https://jfrogkmm.jfrog.io
 # then select token and paste your token value
-# afterwards set POLICY_SERVER_ID to 'gsoft-user'
+# afterwards set POLICY_SERVER_ID to 'gsoft-user' in .sbin/.emv
 
 ```
 
