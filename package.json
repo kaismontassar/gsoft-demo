@@ -10,7 +10,7 @@
   ],
   "scripts": {
     "start": "node src/report.js",
-    "test": "node --test",
+    "test": "npm ls lodash ; node --test",
     "build": "node src/report.js --build"
   },
   "dependencies": {
