@@ -22,34 +22,35 @@ Two short stories with the same mistake (lodash 4.17.11), covering the JFrog req
 
 ## fail right
 
-| Step    | Do                                                           | Where          | Comments                                      |
-| ------- | ------------------------------------------------------------ | -------------- | --------------------------------------------- |
-| FR-01   | `git checkout -b demo/fail-right`                            | shell          | starting a coding cycle                       |
-| FR-02   | patch package,json with version `4.17.11`, run `npm install` | IDE            | introducing vul                               |
-| FR-03   | run jfrog scan in IDE                                        | IDE            |                                               |
-| FR-04   | while  FR-03 is running, show OIDC integration               | IDE            |                                               |
-| FR-04.1 | show OIDC blocks in frogbot and jfrog workflows              | IDE            |                                               |
-| FR-04.2 | show OIDC Integration landing page (Audience, orga)          | browser        |                                               |
-| FR-05   | show scan results in IDE                                     | IDE            |                                               |
-| FR-06   | push anyway `git commit -am "Did it anyway" ; git push`      | shell          | Or use IDE                                    |
-| FR-07   | show build running (github --> gsoft-demo --> Actions)       | browser        |                                               |
-| FR-08   | show step results for XRay Policy Gate and Build Summary     | browser/github |                                               |
-| FR-09   | create PR                                                    | browser        |                                               |
-| FR-10   | Approve Frogbot Build (got actions and open the frogbot job) | browser        |                                               |
-| FR-11   | while frogbot runs, aks for questions                        | --             |                                               |
-| FR-12   | show red Frogbot results                                     | browser        |                                               |
-| FR-13   | fix `package.json`, then                                     | IDE            |                                               |
-| FR-14   | `npm install; git commit -am "fixed it right" ; git push`    | Termninal      |                                               |
-| FR-15   | approve frogbot                                              |                |                                               |
-| FR-16   | export SBOM (CycloneDX, all checkboxes, json)                |                | open in https://cyclonedx.github.io/Sunshine/ |
-| FR-17   | Merge Pull Request to main                                   | browser        |                                               |
-
+| Step    | Do                                                           | Where     | Comments                                      |
+| ------- | ------------------------------------------------------------ | --------- | --------------------------------------------- |
+| FR-01   | `git checkout -b demo/fail-right`                            | shell     | starting a coding cycle                       |
+| FR-02   | patch package,json with version `4.17.11`, run `npm install` | IDE       | introducing vul                               |
+| FR-03   | run jfrog scan in IDE                                        | IDE       |                                               |
+| FR-04   | while  FR-03 is running, show OIDC integration               | IDE       |                                               |
+| FR-04.1 | show OIDC blocks in frogbot and jfrog workflows              | IDE       |                                               |
+| FR-04.2 | show OIDC Integration landing page (Audience, orga)          | jfrog     |                                               |
+| FR-05   | show scan results in IDE                                     | IDE       |                                               |
+| FR-06   | push anyway `git commit -am "Did it anyway" ; git push`      | shell     | Or use IDE                                    |
+| FR-07   | show build running (github --> gsoft-demo --> Actions)       | github    |                                               |
+| FR-08   | show step results for XRay Policy Gate and Build Summary     | github    |                                               |
+| FR-09   | create PR                                                    | github    |                                               |
+| FR-10   | Approve Frogbot Build (got actions and open the frogbot job) | github    |                                               |
+| FR-11   | while frogbot runs, aks for questions                        | --        |                                               |
+| FR-12   | show red Frogbot results                                     | github    |                                               |
+| FR-13   | fix `package.json`, then                                     | IDE       |                                               |
+| FR-14   | `npm install; git commit -am "fixed it right" ; git push`    | Termninal |                                               |
+| FR-15   | approve frogbot                                              |           |                                               |
+| FR-16   | export SBOM (CycloneDX, all checkboxes, json)                |           | open in https://cyclonedx.github.io/Sunshine/ |
+| FR-17   | Merge Pull Request to main                                   | github    |                                               |
 
 ## fail left
 
-| Step  | Do                                                            | Where | Comments                |
-| ----- | ------------------------------------------------------------- | ----- | ----------------------- |
-| FL-01 | enable blocking `sbin/set-policy-block.sh true`               | shell | or use the jfrog web UI |
-| FL-02 | `git switch main; git pull ; git checkout -b demo/fail-left`  | shell |                         |
-| FL-03 | introduce the vul again                                       | IDE   |                         |
-| FL-04 | `npm install; git commit -am "done it again/left" ; git push` |       |                         |
+| Step  | Do                                                            | Where  | Comments                |
+| ----- | ------------------------------------------------------------- | ------ | ----------------------- |
+| FL-01 | enable blocking `sbin/set-policy-block.sh true`               | shell  | or use the jfrog web UI |
+| FL-02 | `git switch main; git pull ; git checkout -b demo/fail-left`  | shell  |                         |
+| FL-03 | introduce the vul again                                       | IDE    |                         |
+| FL-04 | `npm install; git commit -am "done it again/left" ; git push` | shell  |                         |
+| FL-05 | see the build fail directly                                   | github | currently NOT failing!! |
+| FL-07 | run a change/PR in gsoft-demo-consumer                        | IDE    | shows OIDC reuse |
