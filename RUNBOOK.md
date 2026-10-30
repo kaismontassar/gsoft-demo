@@ -42,21 +42,22 @@ Two short stories with the same mistake (lodash 4.17.11), covering the JFrog req
 
 All items are blockers unless marked optional.
 
-| Step | Task                                                                                                                 | Where          | Script       | Ref    |
-| ---- | -------------------------------------------------------------------------------------------------------------------- | -------------- | ------------ | ------ |
-| P.0  | OIDC mappings per trust level: main (15), `demo/*` (20), Frogbot (30); catch-all 9 and dead 10 deleted (status: F10) | Web: jf-oidc   |              | F10    |
-| P.1  | Workflow changes merged to `main` and tag `ci-v1` pushed (`gsoft-ci.yml` uses `@ci-v1`)                              | Terminal, Web  |              | F5     |
-| P.2  | Branch-name check in `03a`, `03d`, `04d` accepts `demo/will-fail-*` (today only `demo/rehearsal-*`, `demo/live-*`)   | IDE            |              | F13    |
-| P.3  | Download blocking **off** on `globalsoft-critical-cve-fix`; an admin is available to switch it on in S.11            | Web: jf-home   |              | F1, F2 |
-| P.4  | Rehearse how quickly the block applies to the cached lodash 4.17.11 after switching it on                            | Web: jf-lodash |              | F1     |
-| P.5  | Keep the `frogbot` environment, but remove its required reviewer for the session (or add the presenter)              | Web: gh-envs   |              | F7     |
-| P.6  | Install the JFrog VS Code extension, connect to `jfrogkmm.jfrog.io`, set project `gsoft`                             | IDE            |              | F11    |
-| P.7  | Check the SBOM export of the last green `gsoft-demo` build and keep one file ready                                   | Web: jf-builds |              | F12    |
-| P.8  | lodash 4.17.11 is in the local npm cache (`03a` installs offline); do not clear the cache                            | Terminal       |              | F13    |
-| P.9  | Preflight and baseline on `main`                                                                                     | Terminal       | `01b`, `01d` |        |
-| P.10 | Open browser tabs for all links, logged in to GitHub and JFrog                                                       | Web            |              |        |
-| P.11 | Close leftover PRs (#1, #7) and delete old `demo/will-fail-*` branches                                               | Web: gh-pulls  |              | F14    |
-| P.12 | Optional backup: screenshot of a blocked install (for example run `40750669146`)                                     | Web: gh-ci     |              | F1     |
+| Step       | Task                                                                                                                                       | Where          | Script       | Ref    |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------ | -------------- | ------------ | ------ |
+| P.0 - DONE | OIDC mappings per trust level: main (15), `demo/*` (20), Frogbot (30); catch-all 9 and dead 10 deleted (status: F10)                       | Web: jf-oidc   |              | F10    |
+| P.1 - DONE | Workflow changes merged to `main` and tag `ci-v1` pushed (`gsoft-ci.yml` uses `@ci-v1`)                                                    | Terminal, Web  |              | F5     |
+| P.2        | Branch-name check in `03a`, `03d`, `04d` accepts `demo/will-fail-*` (today only `demo/rehearsal-*`, `demo/live-*`)                         | IDE            |              | F13    |
+| P.3 - OK   | Download blocking **off** on `gsoft-critical-cve-fix`; an admin is available to switch it on in S.11                                       | Web: jf-home   |              | F1, F2 |
+| P.4        | Rehearse how quickly the block applies to the cached lodash 4.17.11 after switching it on                                                  | Web: jf-lodash |              | F1     |
+| P.5        | `frogbot` environment has the presenter (`voko`) as required reviewer, "Prevent self-review" off; Frogbot refuses to run without reviewers | Web: gh-envs   |              | F7     |
+| P.6 - DONE | Install the JFrog VS Code extension, connect to `jfrogkmm.jfrog.io`, set project `gsoft`; on Apple silicon install Rosetta 2 first (F11)   | IDE            |              | F11    |
+| P.7 - OK   | Check the SBOM export of the last green `gsoft-demo` build and keep one file ready                                                         | Web: jf-builds |              | F12    |
+| P.8 - ??   | lodash 4.17.11 is in the local npm cache (`03a` installs offline); do not clear the cache                                                  | Terminal       |              | F13    |
+| P.9 - DONE | Preflight and baseline on `main`                                                                                                           | Terminal       | `01b`, `01d` |        |
+| P.10       | Open browser tabs for all links, logged in to GitHub and JFrog                                                                             | Web            |              |        |
+| P.11       | Close leftover PRs (#1, #7) and delete old `demo/will-fail-*` branches                                                                     | Web: gh-pulls  |              | F14    |
+| P.12       | Optional backup: screenshot of a blocked install (for example run `40750669146`)                                                           | Web: gh-ci     |              |        |
+
 
 ## Session
 
@@ -69,16 +70,19 @@ All items are blockers unless marked optional.
 
 ### Fail right
 
-| Step | Time  | What happens                                                                                                      | Where                                                 | Script | Req | Ref    |
-| ---- | ----- | ----------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------- | ------ | --- | ------ |
-| S.3  | 6–7   | New branch `demo/will-fail-right-…` with lodash 4.17.11                                                           | Terminal                                              | `03a`  | –   |        |
-| S.4  | 7–9   | JFrog extension flags lodash 4.17.11; the developer pushes anyway                                                 | IDE                                                   |        | R4  | F11    |
-| S.5  | 9–10  | Push (CI starts automatically), open the PR                                                                       | Terminal, then Web: gh-pulls                          | `03d`  | –   |        |
-| S.6  | 10–12 | Branch build green: gate step lists the violations but does not fail; no promotion on branches                    | Web: gh-ci (run, "Xray policy gate" log)              |        | R1  | F6     |
-| S.7  | 12–16 | Frogbot red, PR blocked (no review needed, only the check): walk through the comment, what the developer does     | Web: PR page                                          |        | R2  | F7, F8 |
-| S.8  | 16–17 | Fix: restore lodash 4.18.1, test, commit, push                                                                    | Terminal                                              | `04d`  | –   | F13    |
-| S.9  | 17–20 | While CI and Frogbot rerun: SBOM walkthrough of the last green build                                              | Web: jf-builds (build › Xray Data › Export) *(check)* |        | R4  | F12    |
-| S.10 | 20–22 | Branch build and Frogbot green, merge; CI on `main`: gate enforced and passes, promotion to STAGING; show package | Web: PR page, gh-ci, jf-builds, jf-staging            |        | R1  | F6     |
+| Step  | Time  | What happens                                                                                                                | Where                                                 | Script | Req | Ref    |
+| ----- | ----- | --------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------- | ------ | --- | ------ |
+| S.3   | 6–7   | New branch `demo/will-fail-right-…` with lodash 4.17.11                                                                     | Terminal                                              | `03a`  | –   |        |
+| S.4   | 7–9   | JFrog extension flags lodash 4.17.11; the developer pushes anyway                                                           | IDE                                                   |        | R4  | F11    |
+| S.4.1 |       | change lodash version in package.json; run jfrog can in IDE, run `npm install --ignore-scripts --no-audit --no-fund`        | Terminal, IDE                                         |        |     |        |
+| S4.2  |       | push branch anyway, build succeeds                                                                                          | Terminal                                              |        |     |        |
+|       |       |                                                                                                                             |                                                       |        |     |        |
+| S.5   | 9–10  | create the PR                                                                                                               | Terminal, then Web: gh-pulls                          | `03d`  | –   |        |
+| S.6   | 10–12 | Branch build green: gate step lists the violations but does not fail; no promotion on branches                              | Web: gh-ci (run, "Xray policy gate" log)              |        | R1  | F6     |
+| S.7   | 12–16 | Approve the Frogbot run (`frogbot` environment); Frogbot red, PR blocked: walk through the comment, what the developer does | Web: PR page                                          |        | R2  | F7, F8 |
+| S.8   | 16–17 | Fix: restore lodash 4.18.1, test, commit, push                                                                              | Terminal                                              | `04d`  | –   | F13    |
+| S.9   | 17–20 | While CI and Frogbot rerun: SBOM walkthrough of the last green build                                                        | Web: jf-builds (build › Xray Data › Export) *(check)* |        | R4  | F12    |
+| S.10  | 20–22 | Branch build and Frogbot green, merge; CI on `main`: gate enforced and passes, promotion to STAGING; show package           | Web: PR page, gh-ci, jf-builds, jf-staging            |        | R1  | F6     |
 
 ### Fail left
 
@@ -92,13 +96,14 @@ All items are blockers unless marked optional.
 
 ## Fallbacks
 
-| Situation                            | Action                                                                        | Ref |
-| ------------------------------------ | ----------------------------------------------------------------------------- | --- |
-| Block not effective yet in S.13      | Show the P.12 screenshot; rerun the build after S.14                          | F1  |
-| Asked about exceptions / waivers     | Show the ignore-rule flow from RUNBOOK-FULL.md B.7 (`07c`, `07d`, `07e`)      |     |
-| Frogbot waits for approval           | P.5 was missed: approve on the run page if possible; keep talking through S.9 | F7  |
-| Frogbot slower than 4 minutes        | Continue with S.9 / S.14 and come back to the PR                              |     |
-| Branch build in S.6 fails at install | Download blocking is still on (P.3); switch it off, rerun the job             | F1  |
+| Situation                                  | Action                                                                             | Ref |
+| ------------------------------------------ | ---------------------------------------------------------------------------------- | --- |
+| Block not effective yet in S.13            | Show the P.12 screenshot; rerun the build after S.14                               | F1  |
+| Asked about exceptions / waivers           | Show the ignore-rule flow from RUNBOOK-FULL.md B.7 (`07c`, `07d`, `07e`)           |     |
+| Frogbot waits for approval                 | Expected: approve on the run page ("Review deployments"); keep talking through S.9 | F7  |
+| Frogbot: "doesn't have reviewers selected" | P.5 was missed: add the reviewer, then "Re-run jobs" on the failed run             | F7  |
+| Frogbot slower than 4 minutes              | Continue with S.9 / S.14 and come back to the PR                                   |     |
+| Branch build in S.6 fails at install       | Download blocking is still on (P.3); switch it off, rerun the job                  | F1  |
 
 ## After the session
 
