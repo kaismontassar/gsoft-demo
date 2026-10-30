@@ -62,7 +62,7 @@ The notes describe workflow A as "without blocking downloads", which does not ma
 - `pull_request_target` with checkout of the trusted base SHA is the correct secure pattern. It always runs the workflow file from `main`, so edits on demo branches have no effect.
 - Environment `frogbot` requires approval from **kaismontassar** on every run. A solo presenter waits at every Frogbot run (two in the 30-minute flow).
 - The reviewer rule protects `pull_request_target` runs (secrets and OIDC token) against untrusted PRs, as recommended in JFrog's Frogbot setup. Here fork PRs are already excluded, so it only guards against people who can push anyway. None of R1–R4 needs it.
-- **Decision:** keep the `frogbot` environment, remove the required reviewer for the session (or add the presenter). The environment name stays in the OIDC token as the `environment` claim (F10).
+- **Decision (revised 2026-10-30):** keep the `frogbot` environment **with** a required reviewer; the presenter (`voko`) is the reviewer and approves each run (self-review allowed). Removing the reviewer does not work: Frogbot 2.35.3 aborts with "the existing GitHub Environment named 'frogbot' doesn't have reviewers selected" (run `41046757159`). After the transfer to `voko`, the environment had no reviewers left. The environment name stays in the OIDC token as the `environment` claim (F10).
 - Earlier rehearsals show the red/green sequence ("Found 10 violations: [10 SCA]"). It is unclear whether Frogbot still works with download blocking on (F1); the 30-minute flow avoids this by running Frogbot only while blocking is off.
 - Only same-repo PRs are scanned (forks excluded).
 
@@ -94,6 +94,8 @@ Problems:
 
 ### F11 R4 gap: IDE plugin
 A.2 is undefined. Use the JFrog IDE plugin (VS Code or IntelliJ) connected to `jfrogkmm.jfrog.io` with project `gsoft`, flagging lodash 4.17.11 in `package.json`. Needs install, config and rehearsal, including a check that the plugin scan works while download blocking is on.
+- Apple silicon (2026-10-30): the extension's `analyzerManager` is arm64, but its `jas_scanner` and `zd_scanner` (contextual analysis, SAST, secrets) are x86_64 only and fail with "bad CPU type in executable" without Rosetta 2. Fix: `softwareupdate --install-rosetta --agree-to-license`. The SCA dependency scan (the lodash CVE) does not depend on these scanners.
+- No lodash findings in the IDE (2026-10-30): with `jfrog.projectKey: gsoft` the extension shows only **violations** of watches in project `gsoft`. `globalsoft-watch-default` covers builds and a repository, not a local workspace scan, so the result is empty. `jf audit --project=gsoft --sca` reproduces it ("No violations found"); with `--vuln` Xray lists CVE-2019-10744 and CVE-2026-4800 (Critical, contextual analysis "Not Applicable"), CVE-2026-2950 and CVE-2025-13465 (Medium). Removing the project key does not work: the `gsoft` user gets 403 on the global Xray entitlements. Fix: a project watch in `gsoft` (all project resources) with `globalsoft-critical-cve-fix` and `globalsoft-malicious-block`.
 
 ### F12 R4 gap: SBOM
 No step yet. Export a CycloneDX/SPDX SBOM from the Xray scan of build `gsoft-demo` (UI), or generate it with `jf` and keep it as a pipeline artifact. Compliance talking points: component inventory (including the replaced dependency), licenses (`globalsoft-license-risk` is not on the default watch, F2), CVE/VEX status, traceability build → commit → SBOM → promoted package, regulatory context (CRA, EO 14028, customer audits).
